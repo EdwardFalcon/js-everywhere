@@ -1,5 +1,6 @@
 const { app, BrowserWindow } = require('electron');
-const { is } = require('electron-util');
+const { is, setContentSecurityPolicy } = require('electron-util');
+const config = require('./config.example');
 
 let window;
 
@@ -8,12 +9,27 @@ function createWindow() {
     width: 800,
     height: 600,
     webPreferences: {
-      nodeIntegration: true
+      nodeIntegration: false
     }
   });
-  window.loadFile('index.html');
   if (is.development) {
+    window.loadURL(config.LOCAL_WEB_URL);
     window.webContents.openDevTools();
+  } else {
+    window.loadURL(config.PRODUCTION_WEB_URL);
+  }
+  if (!is.development) {
+    setContentSecurityPolicy(`
+      default-src 'none';
+      script-src 'self';
+      img-src 'self' https://www.gravatar.com;
+      style-src 'self' 'unsafe-inline';
+      font-src 'self';
+      connect-src 'self' ${config.PRODUCTION_API_URL};
+      base-uri 'none';
+      form-action 'none';
+      frame-ancestors 'none';
+    `);
   }
   window.on('closed', () => {
     window = null;
